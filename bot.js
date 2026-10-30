@@ -1,3 +1,8 @@
+const express = require('express');
+const app = express();
+app.get('/', (req, res) => res.send('9+ BOT Running'));
+app.listen(process.env.PORT||3000);
+
 const { default: makeWASocket, useMultiFileAuthState } = require('@whiskeysockets/baileys')
 const axios = require('axios')
 const P = require('pino')
