@@ -1,19 +1,12 @@
 {
   "name": "9-bot",
   "version": "1.0.0",
-  "description": "9-BOT WhatsApp Video Downloader",
   "main": "bot.js",
-  "scripts": {
-    "start": "node bot.js"
-  },
+  "scripts": { "start": "node bot.js" },
   "dependencies": {
-    "@whiskeysockets/baileys": "^6.7.8",
-    "axios": "^1.6.7",
+    "@whiskeysockets/baileys": "latest",
+    "pino": "^8.19.0",
     "express": "^4.18.2",
-    "pino": "^8.17.0",
     "qrcode-terminal": "^0.12.0"
-  },
-  "engines": {
-    "node": ">=18.0.0"
   }
 }
