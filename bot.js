@@ -1,15 +1,24 @@
-console.log("=== STARTING QR BOT V3 - FORCE LOGS ===");
+console.log("=== BOT V4 FRESH AUTH ===");
+const fs = require('fs');
 const { default: makeWASocket, useMultiFileAuthState } = require('@whiskeysockets/baileys');
 const P = require('pino');
 const express = require('express');
 const app = express();
-app.get('/', (req,res)=>res.send('Bot V3 running - check logs'));
+app.get('/', (req,res)=>res.send('Bot V4 - check logs for QR link'));
 app.listen(process.env.PORT || 3000, ()=>console.log("Web up"));
 
+// DELETE OLD BAD SESSIONS
+try {
+  if(fs.existsSync('./auth_v3')) fs.rmSync('./auth_v3', {recursive:true, force:true});
+  if(fs.existsSync('./session_qr')) fs.rmSync('./session_qr', {recursive:true, force:true});
+  console.log("Cleaned old auth");
+} catch(e){}
+
 async function start(){
-  console.log("Getting auth...");
-  const { state, saveCreds } = await useMultiFileAuthState('./auth_v3');
-  console.log("Making socket...");
+  const folder = './auth_fresh_' + Date.now();
+  console.log("Using folder:", folder);
+  const { state, saveCreds } = await useMultiFileAuthState(folder);
+  
   const sock = makeWASocket({
     auth: state,
     logger: P({level:'silent'}),
@@ -19,29 +28,27 @@ async function start(){
   
   sock.ev.on('creds.update', saveCreds);
   
-  console.log("Listening for QR...");
-  
   sock.ev.on('connection.update', async (update)=>{
-    console.log("UPDATE RECEIVED:", JSON.stringify(update, null, 2).substring(0, 1000));
-    
     const { qr, connection, lastDisconnect } = update;
     
     if(qr){
       console.log("\n========== QR FOUND ==========");
-      console.log("RAW QR:", qr);
-      console.log("\n--- LINK FOR YOU TO OPEN ---");
       const link = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`;
+      console.log("COPY THIS LINK OPEN FOR BROWSER:");
       console.log(link);
-      console.log("========== COPY LINK ABOVE ==========\n");
+      console.log("========== END ==========\n");
     }
     
-    if(connection){
-      console.log("Connection status:", connection);
+    if(connection === 'close'){
+      const reason = lastDisconnect?.error?.output?.statusCode;
+      console.log("Closed, reason code:", reason, "Full:", JSON.stringify(lastDisconnect).slice(0,500));
+      console.log("Retrying in 5 secs...");
+      setTimeout(start, 5000);
     }
     
     if(connection === 'open'){
-      console.log(">>> SUCCESS! BOT CONNECTED! <<<");
+      console.log(">>> BOT CONNECTED SUCCESSFULLY! <<<");
     }
   });
 }
-start().catch(e=>console.log("START ERROR:", e));
+start();
