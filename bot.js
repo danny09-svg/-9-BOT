@@ -119,10 +119,18 @@ async function startBot() {
     }
   })
 }
-startBot() 
-// Keep Render alive
+// Keep Render alive - DO NOT DELETE
 const express = require('express');
 const app = express();
-const PORT = process.env.PORT || 3000;
-app.get('/', (req, res) => res.send('9-BOT is running! 🔥'));
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+const PORT = process.env.PORT || 10000;
+
+app.get('/', (req, res) => {
+  res.send('9-BOT is running! Bot is Live!');
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log('9-BOT is running!');
+});
+
+startBot();
