@@ -1,34 +1,47 @@
-console.log("=== STARTING QR BOT V2 ===");
+console.log("=== STARTING QR BOT V3 - FORCE LOGS ===");
 const { default: makeWASocket, useMultiFileAuthState } = require('@whiskeysockets/baileys');
 const P = require('pino');
 const express = require('express');
 const app = express();
-app.get('/', (req,res)=>res.send('QR Bot - check logs'));
+app.get('/', (req,res)=>res.send('Bot V3 running - check logs'));
 app.listen(process.env.PORT || 3000, ()=>console.log("Web up"));
 
 async function start(){
-  const { state, saveCreds } = await useMultiFileAuthState('./session_final_'+Date.now());
+  console.log("Getting auth...");
+  const { state, saveCreds } = await useMultiFileAuthState('./auth_v3');
+  console.log("Making socket...");
   const sock = makeWASocket({
     auth: state,
     logger: P({level:'silent'}),
     printQRInTerminal: false,
     browser: ["Ubuntu","Chrome","20.0.04"]
   });
+  
   sock.ev.on('creds.update', saveCreds);
+  
+  console.log("Listening for QR...");
+  
   sock.ev.on('connection.update', async (update)=>{
-    const { qr, connection } = update;
+    console.log("UPDATE RECEIVED:", JSON.stringify(update, null, 2).substring(0, 1000));
+    
+    const { qr, connection, lastDisconnect } = update;
+    
     if(qr){
-      console.log("\n\n");
-      console.log("########## YOUR QR STRING ##########");
-      console.log(qr);
-      console.log("\nCOPY THIS LINK AND OPEN FOR BROWSER TO SEE QR IMAGE:");
-      console.log(`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`);
-      console.log("\nOR GO TO: https://wa.link and paste");
-      console.log("########## SCAN WITH BUSINESS WHATSAPP ##########\n\n");
+      console.log("\n========== QR FOUND ==========");
+      console.log("RAW QR:", qr);
+      console.log("\n--- LINK FOR YOU TO OPEN ---");
+      const link = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`;
+      console.log(link);
+      console.log("========== COPY LINK ABOVE ==========\n");
     }
+    
+    if(connection){
+      console.log("Connection status:", connection);
+    }
+    
     if(connection === 'open'){
-      console.log(">>> BOT CONNECTED! <<<");
+      console.log(">>> SUCCESS! BOT CONNECTED! <<<");
     }
   });
 }
-start();
+start().catch(e=>console.log("START ERROR:", e));
