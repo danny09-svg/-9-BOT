@@ -19,9 +19,17 @@ async function startBot() {
   const { state, saveCreds } = await useMultiFileAuthState('auth');
 
   const sock = makeWASocket({
-    auth: state,
-    printQRInTerminal: true
-  });
+  auth: state,
+  printQRInTerminal: false,
+  browser: ["9-BOT", "Chrome", "1.0.0"]
+});
+
+if (!sock.authState.creds.registered) {
+  setTimeout(async () => {
+    let code = await sock.requestPairingCode("2349035287102); // Put your WhatsApp number here with country code
+    console.log(`PAIRING CODE: ${code}`);
+  }, 3000);
+}
 
   sock.ev.on('creds.update', saveCreds);
 
