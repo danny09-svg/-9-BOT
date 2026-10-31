@@ -1,67 +1,47 @@
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys')
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys')
 const P = require('pino')
 const express = require('express')
 
 const app = express()
-app.get('/', (req,res) => res.send('9-BOT ONLINE 👿 Last active: ' + new Date()))
-app.listen(process.env.PORT || 10000, () => console.log('Web running'))
+app.get('/', (req,res) => res.send('BOT ONLINE'))
+app.listen(process.env.PORT || 10000)
+
+const PHONE = '2349035287102' // your bot number without +
 
 async function startBot() {
-    const { version } = await fetchLatestBaileysVersion()
     const { state, saveCreds } = await useMultiFileAuthState('session')
+    const sock = makeWASocket({ logger: P({ level: 'silent' }), auth: state, browser: ['Chrome','Windows','10'] })
     
-    const sock = makeWASocket({
-        version,
-        logger: P({ level: 'silent' }),
-        auth: state,
-        browser: ['Ubuntu','Chrome','110.0.0'],
-    })
+    if (!sock.authState.creds.registered) {
+        console.log('Requesting pairing code...')
+        await new Promise(r => setTimeout(r, 3000))
+        const code = await sock.requestPairingCode(PHONE)
+        console.log('============================')
+        console.log('YOUR PAIRING CODE IS: ' + code)
+        console.log('Go to WhatsApp > Linked Devices > Link with phone number > Type this code')
+        console.log('============================')
+    }
 
-    sock.ev.on('connection.update', async (update) => {
-        const { connection, lastDisconnect } = update
-        console.log('CONNECTION:', connection)
-        if (connection === 'open') console.log('👿 9-BOT CONNECTED - READY FOR MESSAGES!')
-        if (connection === 'close') {
-            console.log('Closed:', lastDisconnect?.error)
-            const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut
-            if (shouldReconnect) {
-                console.log('Reconnecting in 3 sec...')
-                setTimeout(startBot, 3000)
-            }
+    sock.ev.on('connection.update', async (u) => {
+        console.log('CONNECTION:', u.connection)
+        if (u.connection === 'open') console.log('👿 CONNECTED!')
+        if (u.connection === 'close') {
+            const reconnect = u.lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut
+            if (reconnect) setTimeout(startBot, 3000)
         }
     })
     sock.ev.on('creds.update', saveCreds)
-
-    sock.ev.on('messages.upsert', async (chatUpdate) => {
-        try {
-            const m = chatUpdate.messages[0]
-            if (!m.message) return
-            
-            const jid = m.key.remoteJid
-            const isGroup = jid.endsWith('@g.us')
-            
-            // Don't reply to status or groups for now
-            if (jid === 'status@broadcast' || isGroup) return
-
-            const msgType = Object.keys(m.message)[0]
-            let text = ''
-            if (msgType === 'conversation') text = m.message.conversation
-            else if (msgType === 'extendedTextMessage') text = m.message.extendedTextMessage.text
-            else if (msgType === 'imageMessage') text = m.message.imageMessage.caption || ''
-            else text = ''
-
-            console.log('--- NEW MESSAGE ---')
-            console.log('From:', jid)
-            console.log('Text:', text)
-            console.log('Type:', msgType)
-
-            // REPLY TO EVERY MESSAGE FOR TESTING
-            await sock.sendMessage(jid, { text: `👿 9-BOT got your message: "${text}"\n\nType *menu* for commands!` })
-            console.log('Replied!')
-
-        } catch (e) {
-            console.log('Error in message handler:', e)
-        }
+    sock.ev.on('messages.upsert', async (c) => {
+        const m = c.messages[0]
+        if (!m.message) return
+        const jid = m.key.remoteJid
+        if (jid === 'status@broadcast') return
+        let t = (m.message.conversation || m.message.extendedTextMessage?.text || '').toLowerCase().trim()
+        console.log('MSG:', t, 'FROM:', jid)
+        if (!t) return
+        if (t.startsWith('.')) t = t.slice(1)
+        if (['hi','hello','ping'].includes(t)) await sock.sendMessage(jid, {text:'Pong! Bot live 👿'})
+        if (t === 'menu') await sock.sendMessage(jid, {text:'*MENU*\n- ping\n- menu\n- hi'})
     })
 }
 startBot()
