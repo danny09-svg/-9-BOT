@@ -1,7 +1,7 @@
 {
   "name": "bot-09",
-  "version": "6.3.0",
-  "description": "BOT 09 ! ULTIMATE DEMON V6.3 - VOICE & MUSIC",
+  "version": "6.3.1",
+  "description": "BOT 09 ! ULTIMATE DEMON V6.3.1 - VOICE FIXED",
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js"
