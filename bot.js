@@ -28,7 +28,7 @@ async function startBot() {
     sock.ev.on('connection.update', async (u) => {
         if(u.qr){
             lastQR = await QRCode.toDataURL(u.qr)
-            console.log('QR READY - check /qr')
+            console.log('QR READY')
         }
         if(u.connection === 'open') console.log('CONNECTED!')
         if(u.connection === 'close' && u.lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut){
@@ -52,7 +52,7 @@ async function startBot() {
 
 > .ping - Check bot
 > .hi - Hello
-> .owner - Owner info
+> .menu - This list
 
 Bot is Active ✅`})
         }
