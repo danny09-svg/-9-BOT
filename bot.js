@@ -3,8 +3,8 @@ const P = require('pino')
 const express = require('express')
 
 const app = express()
-app.get('/', (req,res) => res.send('9-BOT ONLINE 👿🔥'))
-app.listen(process.env.PORT || 10000)
+app.get('/', (req,res) => res.send('9-BOT ONLINE 👿 Last active: ' + new Date()))
+app.listen(process.env.PORT || 10000, () => console.log('Web running'))
 
 async function startBot() {
     const { version } = await fetchLatestBaileysVersion()
@@ -14,37 +14,53 @@ async function startBot() {
         version,
         logger: P({ level: 'silent' }),
         auth: state,
-        browser: ['Chrome','Windows','10'],
+        browser: ['Ubuntu','Chrome','110.0.0'],
     })
 
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect } = update
-        console.log('Status:', connection)
-        if (connection === 'open') console.log('👿 9-BOT CONNECTED!')
+        console.log('CONNECTION:', connection)
+        if (connection === 'open') console.log('👿 9-BOT CONNECTED - READY FOR MESSAGES!')
         if (connection === 'close') {
+            console.log('Closed:', lastDisconnect?.error)
             const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut
-            if (shouldReconnect) setTimeout(startBot, 3000)
+            if (shouldReconnect) {
+                console.log('Reconnecting in 3 sec...')
+                setTimeout(startBot, 3000)
+            }
         }
     })
     sock.ev.on('creds.update', saveCreds)
 
-    // COMMANDS
-    sock.ev.on('messages.upsert', async ({ messages }) => {
-        const m = messages[0]
-        if (!m.message || m.key.fromMe) return
-        
-        const text = (m.message.conversation || m.message.extendedTextMessage?.text || '').toLowerCase().trim()
-        const jid = m.key.remoteJid
-        console.log('CMD:', text)
+    sock.ev.on('messages.upsert', async (chatUpdate) => {
+        try {
+            const m = chatUpdate.messages[0]
+            if (!m.message) return
+            
+            const jid = m.key.remoteJid
+            const isGroup = jid.endsWith('@g.us')
+            
+            // Don't reply to status or groups for now
+            if (jid === 'status@broadcast' || isGroup) return
 
-        if (text === 'ping') {
-            await sock.sendMessage(jid, { text: 'Pong! 👿 9-BOT is Active & Fast!' })
-        }
-        if (text === 'menu' || text === 'help') {
-            await sock.sendMessage(jid, { text: `*👿 9-BOT MENU*\n\n• ping - check if bot active\n• menu - show this menu\n• owner - owner info\n\nMore commands coming!` })
-        }
-        if (text === 'owner') {
-            await sock.sendMessage(jid, { text: 'Owner: You 👿 Number: 09035287102' })
+            const msgType = Object.keys(m.message)[0]
+            let text = ''
+            if (msgType === 'conversation') text = m.message.conversation
+            else if (msgType === 'extendedTextMessage') text = m.message.extendedTextMessage.text
+            else if (msgType === 'imageMessage') text = m.message.imageMessage.caption || ''
+            else text = ''
+
+            console.log('--- NEW MESSAGE ---')
+            console.log('From:', jid)
+            console.log('Text:', text)
+            console.log('Type:', msgType)
+
+            // REPLY TO EVERY MESSAGE FOR TESTING
+            await sock.sendMessage(jid, { text: `👿 9-BOT got your message: "${text}"\n\nType *menu* for commands!` })
+            console.log('Replied!')
+
+        } catch (e) {
+            console.log('Error in message handler:', e)
         }
     })
 }
