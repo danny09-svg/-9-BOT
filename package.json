@@ -1,7 +1,7 @@
 {
   "name": "bot-09",
-  "version": "6.3.1",
-  "description": "BOT 09 ! ULTIMATE DEMON V6.3.1 - VOICE FIXED",
+  "version": "6.4.0",
+  "description": "BOT 09 ! V6.4 - REAL VOICE CLONE + PLAY MP3 DIRECT",
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js"
