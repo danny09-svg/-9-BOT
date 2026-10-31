@@ -1,46 +1,45 @@
-console.log("=== BOT V5 LATEST BAILEYS ===");
-const { default: makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
-const P = require('pino');
-const express = require('express');
-const app = express();
-app.get('/', (req,res)=>res.send('V5 Latest - check logs'));
-app.listen(process.env.PORT || 3000, ()=>console.log("Web up"));
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, makeCacheableSignalKeyStore } = require('@whiskeysockets/baileys')
+const P = require('pino')
 
-async function start(){
-  const { version } = await fetchLatestBaileysVersion();
-  console.log("Using WA version:", version);
-  
-  const folder = './auth_v5_' + Date.now();
-  const { state, saveCreds } = await useMultiFileAuthState(folder);
-  
-  const sock = makeWASocket({
-    version,
-    auth: state,
-    logger: P({level:'silent'}),
-    printQRInTerminal: false,
-    browser: ["Ubuntu","Chrome","20.0.04"]
-  });
-  
-  sock.ev.on('creds.update', saveCreds);
-  
-  sock.ev.on('connection.update', async (update)=>{
-    const { qr, connection, lastDisconnect } = update;
+async function startBot() {
+    const { state, saveCreds } = await useMultiFileAuthState('session')
     
-    if(qr){
-      console.log("\n========== QR FOUND ==========");
-      const link = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`;
-      console.log(link);
-      console.log("========== COPY LINK ==========\n");
+    const conn = makeWASocket({
+        logger: P({ level: 'silent' }),
+        printQRInTerminal: false,
+        auth: state,
+        browser: ['9-BOT', 'Chrome', '1.0.0']
+    })
+
+    // PAIR CODE LOGIC - THIS WILL SHOW YOUR CODE IN RENDER LOGS
+    if (!conn.authState.creds.registered) {
+        const phoneNumber = process.env.PHONE_NUMBER
+        if (phoneNumber) {
+            setTimeout(async () => {
+                const code = await conn.requestPairingCode(phoneNumber)
+                console.log(`\n================================\n👿 YOUR PAIR CODE: ${code}\n================================\nGo to WhatsApp > Linked Devices > Link with phone number > Enter this code\n================================\n`)
+            }, 3000)
+        } else {
+            console.log("PHONE_NUMBER not set in Environment!")
+        }
     }
+
+    conn.ev.on('creds.update', saveCreds)
     
-    if(connection === 'close'){
-      console.log("Closed, retrying...", lastDisconnect?.error?.message);
-      setTimeout(start, 5000);
-    }
-    
-    if(connection === 'open'){
-      console.log(">>> BOT CONNECTED! <<<");
-    }
-  });
+    conn.ev.on('connection.update', (update) => {
+        const { connection, lastDisconnect } = update
+        if (connection === 'close') {
+            const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut
+            if (shouldReconnect) startBot()
+        } else if (connection === 'open') {
+            console.log('👿 9-BOT Connected Successfully!')
+        }
+    })
+
+    // LOAD YOUR COMMANDS HERE - keep your old commands if you have
+    conn.ev.on('messages.upsert', async (m) => {
+        // your bot commands
+    })
 }
-start();
+
+startBot()
