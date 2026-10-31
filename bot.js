@@ -1,20 +1,10 @@
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys')
 const P = require('pino')
-const QRCode = require('qrcode')
 const express = require('express')
 
 const app = express()
-let latestQR = null
-
-app.get('/', async (req,res) => {
-    if (!latestQR) return res.send('<h2>9-BOT 👿 Waiting for QR... Refresh in 10s. Check Render Logs.</h2>')
-    try {
-        const qrImage = await QRCode.toDataURL(latestQR)
-        res.send(`<html><body style="text-align:center;background:#000;color:#fff"><h1>9-BOT QR 👿</h1><p>Scan this with WhatsApp: Linked Devices > Link a device</p><img src="${qrImage}" style="width:300px"/><br><br><p>QR expires in 20 sec! Refresh page if expired</p></body></html>`)
-    } catch(e) { res.send('Error generating QR') }
-})
-
-app.listen(process.env.PORT || 10000, () => console.log('Web Live'))
+app.get('/', (req,res) => res.send('9-BOT ONLINE 👿🔥'))
+app.listen(process.env.PORT || 10000)
 
 async function startBot() {
     const { version } = await fetchLatestBaileysVersion()
@@ -23,32 +13,39 @@ async function startBot() {
     const sock = makeWASocket({
         version,
         logger: P({ level: 'silent' }),
-        printQRInTerminal: false,
         auth: state,
         browser: ['Chrome','Windows','10'],
     })
 
     sock.ev.on('connection.update', async (update) => {
-        const { connection, lastDisconnect, qr } = update
-        
-        if (qr) {
-            latestQR = qr
-            console.log('NEW QR GENERATED - Go to your bot URL: https://your-bot.onrender.com to scan it!')
-            console.log('QR String:', qr)
-        }
-        
-        if (connection === 'open') {
-            console.log('👿 CONNECTED SUCCESSFULLY!')
-            latestQR = null
-        }
-        
+        const { connection, lastDisconnect } = update
+        console.log('Status:', connection)
+        if (connection === 'open') console.log('👿 9-BOT CONNECTED!')
         if (connection === 'close') {
             const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut
             if (shouldReconnect) setTimeout(startBot, 3000)
         }
     })
-
     sock.ev.on('creds.update', saveCreds)
-}
 
+    // COMMANDS
+    sock.ev.on('messages.upsert', async ({ messages }) => {
+        const m = messages[0]
+        if (!m.message || m.key.fromMe) return
+        
+        const text = (m.message.conversation || m.message.extendedTextMessage?.text || '').toLowerCase().trim()
+        const jid = m.key.remoteJid
+        console.log('CMD:', text)
+
+        if (text === 'ping') {
+            await sock.sendMessage(jid, { text: 'Pong! 👿 9-BOT is Active & Fast!' })
+        }
+        if (text === 'menu' || text === 'help') {
+            await sock.sendMessage(jid, { text: `*👿 9-BOT MENU*\n\n• ping - check if bot active\n• menu - show this menu\n• owner - owner info\n\nMore commands coming!` })
+        }
+        if (text === 'owner') {
+            await sock.sendMessage(jid, { text: 'Owner: You 👿 Number: 09035287102' })
+        }
+    })
+}
 startBot()
