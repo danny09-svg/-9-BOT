@@ -41,9 +41,24 @@ async function startBot() {
         if(!m?.message) return
         const jid = m.key.remoteJid
         if(jid === 'status@broadcast') return
-        let t = (m.message.conversation || m.message.extendedTextMessage?.text || '').toLowerCase().trim()
-        if(t.startsWith('.')) t = t.slice(1)
-        if(['hi','hello','ping'].includes(t)) await sock.sendMessage(jid, {text:'Bot dey live 👿'})
+        let text = (m.message.conversation || m.message.extendedTextMessage?.text || '').toLowerCase().trim()
+        if(text.startsWith('.')) text = text.slice(1)
+
+        if(['hi','hello','hey'].includes(text)){
+            await sock.sendMessage(jid, {text:'Bot dey live 😈\nType .menu to see commands'})
+        }
+        if(text === 'menu' || text === 'help'){
+            await sock.sendMessage(jid, {text:`*🔥 !9 BOT MENU 🔥*
+
+> .ping - Check bot
+> .hi - Hello
+> .owner - Owner info
+
+Bot is Active ✅`})
+        }
+        if(text === 'ping'){
+            await sock.sendMessage(jid, {text:'Pong! Speed: Fast ⚡'})
+        }
     })
 }
 startBot()
