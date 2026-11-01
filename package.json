@@ -1,7 +1,7 @@
 {
   "name": "bot-09",
-  "version": "6.4.1",
-  "description": "BOT 09 ! V6.4.1 HOTFIX - NO HANG MP3 + REAL VOICE CLONE",
+  "version": "6.5.0",
+  "description": "BOT 09 ! V6.5 FINAL - REAL MP3 BYPASS + VOICE CLONE",
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js"
@@ -13,6 +13,7 @@
     "qrcode": "^1.5.3",
     "gtts": "^0.2.1",
     "yt-search": "^2.12.1",
-    "ytdl-core": "^4.11.5"
+    "ytdl-core": "^4.11.5",
+    "node-fetch": "^2.6.9"
   }
 }
