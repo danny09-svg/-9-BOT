@@ -3,16 +3,17 @@ const P = require('pino')
 const express = require('express')
 const QRCode = require('qrcode')
 const fs = require('fs')
+const fetch = require('node-fetch')
 
 const app = express()
 let lastQR = null
 
 app.get('/', (req,res) => {
-  res.send(`<center style="font-family:sans-serif;margin-top:50px"><h1>👿 BOT 09 ! V6.4.1 HOTFIX</h1><p>NO HANG MP3</p><a href="/qr" style="background:black;color:white;padding:15px 30px;text-decoration:none;border-radius:10px">SCAN QR</a></center>`)
+  res.send(`<center style="font-family:sans-serif;margin-top:50px"><h1>👿 BOT 09 ! V6.5 FINAL</h1><p>REAL MP3 BYPASS ACTIVE</p><a href="/qr" style="background:black;color:white;padding:15px 30px;text-decoration:none;border-radius:10px">SCAN QR</a></center>`)
 })
 app.get('/qr', async (req,res) => {
   if(!lastQR) return res.send(`<center><h3>Generating QR... refresh</h3><script>setTimeout(()=>location.reload(),5000)</script></center>`)
-  res.send(`<center><h2>👿 V6.4.1 SCAN</h2><img src="${lastQR}" style="width:320px;border:5px solid black;border-radius:20px"><p>Auto refresh 25s</p><script>setTimeout(()=>location.reload(),25000)</script></center>`)
+  res.send(`<center><h2>👿 V6.5 SCAN</h2><img src="${lastQR}" style="width:320px;border:5px solid black;border-radius:20px"><p>Auto refresh 25s</p><script>setTimeout(()=>location.reload(),25000)</script></center>`)
 })
 app.listen(process.env.PORT || 10000, () => console.log('WEB LIVE'))
 
@@ -21,26 +22,59 @@ let antiLink = new Set()
 
 function mainMenu(){
 return `WELCOME. I AM ${BOT_NAME} 👿💀
-V6.4.1 HOTFIX - NO HANG
+V6.5 FINAL - REAL MP3 BYPASS
 
-┌─[ 1 ] VOICE CLONE 🎙️
-│ > .tts [text] - Robot
-│ > .setvoice - Reply your VN
-│ > .myvoice - Play your voice
-└────────────────────
-
-┌─[ 2 ] MUSIC FAST 🎵
-│ > .play [song] - Try MP3
-│   If block = instant link!
+┌─[ 1 ] MUSIC REAL MP3 🎵
+│ > .play [song] - REAL MP3!
+│   Bypass YouTube block!
 │ > .play2 [song] - Link only
 └────────────────────
 
-┌─[ 3 ] MEDIA / CORE
+┌─[ 2 ] VOICE CLONE 🎙️
+│ > .tts [text] - Robot
+│ > .setvoice - Reply your VN
+│ > .myvoice - Play your voice
+│ > .mytts [text] - Try clone
+└────────────────────
+
+┌─[ 3 ] CORE
 │ > .sticker .attp .tagall
 │ > .ping .alive .menu
 └────────────────────
 
-V6.4.1 HOTFIX`
+V6.5 BYPASS 👿`
+}
+
+async function downloadAudioFromCobalt(youtubeUrl, filePath){
+  try{
+    // Try Cobalt API 1
+    let apiUrl = 'https://api.cobalt.tools/api/json'
+    let res = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Accept':'application/json', 'Content-Type':'application/json' },
+      body: JSON.stringify({ url: youtubeUrl, aFormat: 'mp3', isAudioOnly: true })
+    }).then(r=>r.json()).catch(()=>null)
+
+    if(!res || !res.url){
+      // Try backup instance
+      apiUrl = 'https://co.wuk.sh/api/json'
+      res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Accept':'application/json', 'Content-Type':'application/json' },
+        body: JSON.stringify({ url: youtubeUrl, aFormat: 'mp3', isAudioOnly: true })
+      }).then(r=>r.json()).catch(()=>null)
+    }
+
+    if(!res || !res.url) throw new Error('Cobalt no URL')
+
+    const audioRes = await fetch(res.url)
+    const buffer = await audioRes.buffer()
+    fs.writeFileSync(filePath, buffer)
+    return true
+  }catch(e){
+    console.log('Cobalt fail:', e.message)
+    return false
+  }
 }
 
 async function startBot(){
@@ -54,7 +88,7 @@ async function startBot(){
       const should = u.lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut
       if(should) setTimeout(startBot,3000)
       else { if(fs.existsSync('./auth')) fs.rmSync('./auth',{recursive:true,force:true}); setTimeout(startBot,3000) }
-    } else if(u.connection==='open'){ lastQR=null; console.log('✅ V6.4.1 CONNECTED') }
+    } else if(u.connection==='open'){ lastQR=null; console.log('✅ V6.5 CONNECTED') }
   })
 
   sock.ev.on('messages.upsert', async ({messages})=>{
@@ -73,11 +107,10 @@ async function startBot(){
       await sock.sendPresenceUpdate('composing', jid)
 
       if(lower==='menu' || lower==='help'){ await sock.sendMessage(jid,{text:mainMenu()}) }
-      else if(lower==='ping' || lower==='alive'){ await sock.sendMessage(jid,{text:`*Pong!* ⚡\n*${BOT_NAME} V6.4.1 HOTFIX ACTIVE ✅*\nNo more hanging!`}) }
-      else if(lower==='owner'){ await sock.sendMessage(jid,{text:`*OWNER: ${BOT_NAME}* 👿\n*V6.4.1 HOTFIX - NO HANG*`}) }
-      else if(lower.startsWith('ai ')){ const q=raw.slice(3); await sock.sendMessage(jid,{text:`*${BOT_NAME} AI:* ${q}\nI be demon V6.4.1! 💀`}) }
+      else if(lower==='ping' || lower==='alive'){ await sock.sendMessage(jid,{text:`*Pong!* ⚡\n*${BOT_NAME} V6.5 FINAL MP3 BYPASS ACTIVE ✅*\nNow send real MP3 even when YouTube blocks!`}) }
+      else if(lower==='owner'){ await sock.sendMessage(jid,{text:`*OWNER: ${BOT_NAME}* 👿\n*V6.5 FINAL*`}) }
+      else if(lower.startsWith('ai ')){ const q=raw.slice(3); await sock.sendMessage(jid,{text:`*${BOT_NAME} AI:* ${q}\nI be demon V6.5! 💀`}) }
 
-      // VOICE CLONE
       else if(lower==='setvoice'){
         const quoted = m.message.extendedTextMessage?.contextInfo?.quotedMessage
         if(!quoted?.audioMessage && !quoted?.pttMessage){ return sock.sendMessage(jid,{text:'Send VN then reply that VN with .setvoice 🎙️'}) }
@@ -115,19 +148,18 @@ async function startBot(){
             if(fs.existsSync(filePath)){
               const buffer = fs.readFileSync(filePath)
               await sock.sendMessage(jid,{audio: buffer, mimetype:'audio/mpeg'})
-              await sock.sendMessage(jid,{text:`*Voice sent ✅*`})
             }
           })
         }catch(e){ await sock.sendMessage(jid,{text:'Voice fail: '+e.message}) }
       }
       
-      // PLAY V6.4.1 - NO HANG VERSION
+      // PLAY V6.5 - REAL BYPASS
       else if(lower.startsWith('play ') || lower.startsWith('play2 ')){
         const isDirect = lower.startsWith('play ') && !lower.startsWith('play2 ')
         const query = raw.slice(raw.indexOf(' ')+1)
         if(!query) return sock.sendMessage(jid,{text:'Usage: .play Asake Lonely'})
         try{
-          await sock.sendMessage(jid,{text:`🔍 Searching: *${query}* ${isDirect?'[TRY MP3]':''}...`})
+          await sock.sendMessage(jid,{text:`🔍 Searching: *${query}* ...`})
           const yts = require('yt-search')
           const r = await yts(query)
           const video = r.videos[0]
@@ -137,61 +169,53 @@ async function startBot(){
             return sock.sendMessage(jid,{text:`*🎵 FOUND:*\n*Title:* ${video.title}\n*Duration:* ${video.timestamp}\n*Link:* ${video.url}\n\n*BOT 09 MUSIC* 😈`})
           }
 
-          // Try MP3 with 15 sec timeout
-          await sock.sendMessage(jid,{text:`*🎵 Found:*\n${video.title}\n*${video.timestamp}*\nTrying MP3 (10s timeout)... 👿`})
+          await sock.sendMessage(jid,{text:`*🎵 Found:* ${video.title}\n*${video.timestamp}*\nDownloading MP3 via Bypass... 👿🔥`})
           
-          const ytdl = require('ytdl-core')
           const filePath = './song.mp3'
-          let finished = false
-          
-          const timeout = setTimeout(async ()=>{
-            if(!finished){
-              finished = true
-              await sock.sendMessage(jid,{text:`*⚠️ YouTube blocked direct download (Render IP)*\n\n*Title:* ${video.title}\n*Link:* ${video.url}\n\n*FAST DOWNLOAD:*\n1. Go: https://y2mate.is/${video.videoId}\n2. Or https://ytmp3.nu/${video.videoId}\n\n*Use .play2 for instant link mode*\n*BOT 09 V6.4.1* 😈`})
-              try{ if(fs.existsSync(filePath)) fs.unlinkSync(filePath) }catch{}
-            }
-          }, 12000)
+          if(fs.existsSync(filePath)) try{fs.unlinkSync(filePath)}catch{}
 
-          try{
-            const stream = ytdl(video.url, { filter: 'audioonly', quality: 'highestaudio' })
-            const writeStream = fs.createWriteStream(filePath)
-            stream.pipe(writeStream)
-            writeStream.on('finish', async ()=>{
-              if(finished) return
-              finished = true
-              clearTimeout(timeout)
-              try{
-                const stats = fs.statSync(filePath)
-                if(stats.size > 15*1024*1024){
-                  fs.unlinkSync(filePath)
-                  return sock.sendMessage(jid,{text:`*File too big ${Math.round(stats.size/1024/1024)}MB*\n*Link:* ${video.url}\nDownload here: https://y2mate.is/${video.videoId}`})
-                }
-                const buffer = fs.readFileSync(filePath)
-                await sock.sendMessage(jid,{audio: buffer, mimetype:'audio/mpeg', fileName: `${video.title}.mp3`})
-                await sock.sendMessage(jid,{text:`*✅ MP3 Sent: ${video.title}* 🎵`})
-                fs.unlinkSync(filePath)
-              }catch(err){ await sock.sendMessage(jid,{text:`Send fail: ${err.message}\nLink: ${video.url}`}) }
-            })
-            writeStream.on('error', async (err)=>{
-              if(finished) return
-              finished = true
-              clearTimeout(timeout)
-              await sock.sendMessage(jid,{text:`*MP3 blocked, use link:*\n${video.url}\nDownload: https://y2mate.is/${video.videoId}\nError: ${err.message}`})
-            })
-            stream.on('error', async (err)=>{
-              if(finished) return
-              finished = true
-              clearTimeout(timeout)
-              await sock.sendMessage(jid,{text:`*YouTube blocked MP3*\n*Link:* ${video.url}\n*Fast DL:* https://y2mate.is/${video.videoId}\n\nUse .play2 next time for instant link!`})
-            })
-          }catch(err){
-            if(finished) return
-            finished = true
-            clearTimeout(timeout)
-            await sock.sendMessage(jid,{text:`*Link: ${video.url}*\n*Download MP3:* https://y2mate.is/${video.videoId}\n*Error:* ${err.message}`})
-          }
+          // METHOD 1: Try Cobalt Bypass (works on Render)
+          const cobaltSuccess = await downloadAudioFromCobalt(video.url, filePath)
           
-        }catch(e){ await sock.sendMessage(jid,{text:`Search fail: https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`}) }
+          if(cobaltSuccess && fs.existsSync(filePath)){
+            const stats = fs.statSync(filePath)
+            if(stats.size > 400000){ // >400kb
+              const buffer = fs.readFileSync(filePath)
+              await sock.sendMessage(jid,{audio: buffer, mimetype:'audio/mpeg', fileName: `${video.title}.mp3`})
+              await sock.sendMessage(jid,{text:`*✅ MP3 Sent via Bypass: ${video.title}* 🎵\n*Size:* ${Math.round(stats.size/1024/1024*100)/100}MB`})
+              try{fs.unlinkSync(filePath)}catch{}
+              return
+            }
+          }
+
+          // METHOD 2: Try ytdl-core direct (if not blocked)
+          await sock.sendMessage(jid,{text:`Bypass slow, trying direct...`})
+          try{
+            const ytdl = require('ytdl-core')
+            await new Promise((resolve, reject)=>{
+              const timeout = setTimeout(()=>reject(new Error('timeout')), 15000)
+              const stream = ytdl(video.url, { filter: 'audioonly', quality: 'highestaudio' })
+              const writeStream = fs.createWriteStream(filePath)
+              stream.pipe(writeStream)
+              writeStream.on('finish', ()=>{ clearTimeout(timeout); resolve() })
+              writeStream.on('error', (e)=>{ clearTimeout(timeout); reject(e) })
+              stream.on('error', (e)=>{ clearTimeout(timeout); reject(e) })
+            })
+            if(fs.existsSync(filePath)){
+              const buffer = fs.readFileSync(filePath)
+              await sock.sendMessage(jid,{audio: buffer, mimetype:'audio/mpeg', fileName: `${video.title}.mp3`})
+              await sock.sendMessage(jid,{text:`*✅ MP3 Sent Direct: ${video.title}* 🎵`})
+              try{fs.unlinkSync(filePath)}catch{}
+              return
+            }
+          }catch(e){
+            console.log('ytdl fail', e.message)
+          }
+
+          // FINAL FALLBACK
+          await sock.sendMessage(jid,{text:`*⚠️ MP3 download blocked by YouTube on this server*\n\n*Title:* ${video.title}\n*Link:* ${video.url}\n\n*FAST DOWNLOAD:*\nhttps://y2mate.is/${video.videoId}\n\n*Try .play2 for instant link mode*`})
+          
+        }catch(e){ await sock.sendMessage(jid,{text:`Error: ${e.message}\nTry: https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`}) }
       }
       
       else if(lower==='sticker'){
@@ -201,7 +225,7 @@ async function startBot(){
       }
       else if(lower.startsWith('attp ')){ const txt = raw.slice(5); try{ await sock.sendMessage(jid,{sticker:{url:`https://api.oglinfo.com/attp?text=${encodeURIComponent(txt)}`}}) }catch{} }
       else if(lower.startsWith('tagall')){ if(isGroup){ const meta=await sock.groupMetadata(jid); const members=meta.participants.map(p=>p.id); const txt=raw.slice(6).trim()||'Attention 👿'; await sock.sendMessage(jid,{text:`*${txt}*\n\n${members.map(v=>'@'+v.split('@')[0]).join(' ')}`,mentions:members}) } }
-      else if(['hi','hello','hey'].includes(lower)){ await sock.sendMessage(jid,{text:`Yo! *${BOT_NAME} V6.4.1 NO HANG 👿* Type *.menu*`}) }
+      else if(['hi','hello','hey'].includes(lower)){ await sock.sendMessage(jid,{text:`Yo! *${BOT_NAME} V6.5 FINAL MP3 👿* Type *.menu*`}) }
 
     }catch(e){ console.log('Error:',e.message) }
   })
