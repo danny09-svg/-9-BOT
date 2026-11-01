@@ -1,7 +1,7 @@
 {
   "name": "bot-09",
-  "version": "6.5.0",
-  "description": "BOT 09 ! V6.5 FINAL - REAL MP3 BYPASS + VOICE CLONE",
+  "version": "6.6.0",
+  "description": "BOT 09 V6.6 ULTRA - REAL MP3 BYPASS + VOICE CLONE",
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js"
